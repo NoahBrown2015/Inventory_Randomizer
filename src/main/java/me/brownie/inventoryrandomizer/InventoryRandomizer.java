@@ -1,7 +1,6 @@
 package me.brownie.inventoryrandomizer;
 
-import org.bukkit.Bukkit;
-import org.bukkit.Material;
+import org.bukkit.*;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -11,23 +10,23 @@ import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
 
 public final class InventoryRandomizer extends JavaPlugin implements Listener {
 
+    Inventory inv = Bukkit.createInventory(null, 18, "Inventory Randomizer");
+
     @Override
     public void onEnable() {
-        this.getServer().getPluginManager().registerEvents(new onClick(),this);
+        setupGUI();
+        this.getServer().getPluginManager().registerEvents(this,this);
     }
 
     @Override
     public void onDisable() {
-        // Plugin shutdown logic
     }
 
     public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
@@ -38,12 +37,47 @@ public final class InventoryRandomizer extends JavaPlugin implements Listener {
                 sender.sendMessage("[Inventory Randomizer] This command is only available in-game!");
                 return true;
             }
+            //   Define sender as a player
+            Player p = (Player) sender;
             //   Handles the reloading of the randomizer gui
             if (args[0].equalsIgnoreCase("reload")) {
+                if (!permCheck(p,"reload")) return true;
                 setupGUI();
+                p.sendMessage(ChatColor.GOLD + "[Inventory Randomizer] Plugin successfully reloaded!");
+                this.getLogger().info("Inventory Randomizer has been");
+                return true;
+            }
+            if (args[0].equalsIgnoreCase("get")) {
+                if (!permCheck(p, "get")) return true;
+                if (hasAvaliableSlot(p)) {
+                    p.getInventory().addItem(getItem(p));
+                    p.sendMessage(ChatColor.GOLD + "[Inventory Randomizer] You have been given an inventory randomizer");
+                } else {
+                    Location loc = p.getLocation();
+                    World world = loc.getWorld();
+                    p.sendMessage(ChatColor.GOLD + "[Inventory Randomizer] An inventory randomizer has been left on the ground nearby");
+                }
+                return true;
+            }
+            p.sendMessage(ChatColor.RED + "That command does not exist!");
+        }
+        return false;
+    }
+
+    public boolean hasAvaliableSlot(Player p){
+        Inventory inv = p.getInventory();
+        for (ItemStack item: inv.getContents()) {
+            if(item == null || item.getType() == Material.AIR) {
+                return true;
             }
         }
+        return false;
+    }
 
+    public boolean permCheck(Player p, String perm) {
+        perm = "inventoryrandomizer." + perm;
+        if (p.hasPermission(perm) || p.hasPermission("inventoryrandomizer.*") || p.hasPermission("*")) return true;
+        p.sendMessage(ChatColor.RED + "[Inventory Randomizer] You do not have permission to use that command!");
         return false;
     }
 
@@ -53,15 +87,37 @@ public final class InventoryRandomizer extends JavaPlugin implements Listener {
         ItemStack item = e.getItem();
         //   Checks if the item is the plugin's
         if (item.getType() != Material.CLOCK || !(item.getItemMeta().getDisplayName().equalsIgnoreCase("Inventory Randomizer"))
-                || !(item.getItemMeta().hasLore())) { return; }
+                || !(item.getItemMeta().hasLore())) return;
         //   Opens randomizer GUI
+        e.getPlayer().openInventory(inv);
     }
 
+    @Deprecated
     public void setupGUI() {
-        Inventory inv = Bukkit.createInventory(null, 9, "Inventory Randomizer");
-        for (int i = 0; i <= Bukkit.getOnlinePlayers().size(); i++) {
-
+        Inventory inventory = inv;
+        inventory.clear();
+        List<Collection> OnlinePlayers = new ArrayList<>();
+        OnlinePlayers.add(Bukkit.getOnlinePlayers());
+        for (int i = 0; i <= OnlinePlayers.size(); i++) {
+            Player p = (Player) OnlinePlayers.get(i);
+            ItemStack item = new ItemStack(Material.PLAYER_HEAD, 1, (short) SkullType.PLAYER.ordinal());
+            SkullMeta meta = (SkullMeta) item.getItemMeta();
+            List<String> lore = new ArrayList<>();
+            meta.setOwningPlayer(p);
+            lore.add(ChatColor.DARK_PURPLE + "Click to randomize this player's inventory!");
+            meta.setLore(lore);
+            item.setItemMeta(meta);
+            inventory.setItem(i,item);
         }
+        ItemStack item = new ItemStack(Material.BARRIER);
+        ItemMeta meta = item.getItemMeta();
+        List<String> lore = new ArrayList<>();
+        meta.setDisplayName(ChatColor.RED + "Close Menu");
+        lore.add(ChatColor.LIGHT_PURPLE + "Click to close the menu");
+        meta.setLore(lore);
+        item.setItemMeta(meta);
+        inventory.setItem(19,item);
+        inv = inventory;
     }
 
     public ItemStack getItem(Player p) {
@@ -98,6 +154,4 @@ public final class InventoryRandomizer extends JavaPlugin implements Listener {
                 list.remove(p.getInventory().getItem(r));
         }
     }
-
-
 }
