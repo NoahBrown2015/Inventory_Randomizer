@@ -4,10 +4,7 @@ import org.bukkit.*;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
-import org.bukkit.event.player.PlayerInteractEvent;
-import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -18,13 +15,18 @@ import java.util.*;
 
 public final class InventoryRandomizer extends JavaPlugin implements Listener {
 
+    public Events events;
+    public Utils util;
+    public Menu menu;
+
     Inventory inv = Bukkit.createInventory(null, 18, "Inventory Randomizer");
     List<Collection> OnlinePlayers = new ArrayList<>();
+    OfflinePlayer CurrentCompassUser;
 
     @Override
     public void onEnable() {
         OnlinePlayers.add(Bukkit.getOnlinePlayers());
-        createGui();
+        menu.createGui();
         this.getServer().getPluginManager().registerEvents(this,this);
     }
 
@@ -44,133 +46,45 @@ public final class InventoryRandomizer extends JavaPlugin implements Listener {
             Player p = (Player) sender;
             //   Handles the reloading of the randomizer gui
             if (args[0].equalsIgnoreCase("reload")) {
-                if (!permCheck(p,"reload")) return true;
-                addPlayers(OnlinePlayers);
+                //   Checks for permission
+                if (!util.permCheck(p,"reload")) return true;
+                //   Adds all current players to the GUI
+                menu.addPlayers(true,CurrentCompassUser);
+                //   Informs command sender the reload was successful
                 p.sendMessage(ChatColor.GOLD + "[Inventory Randomizer] Plugin successfully reloaded!");
+                //   Logs that the plugin has successfully been reloaded
                 this.getLogger().info("Inventory Randomizer has been");
                 return true;
             }
+            //   Handles the acquiring of the randomizer item
             if (args[0].equalsIgnoreCase("get")) {
-                if (!permCheck(p, "get")) return true;
-                if (hasAvaliableSlot(p)) {
-                    p.getInventory().addItem(getItem(p));
-                    p.sendMessage(ChatColor.GOLD + "[Inventory Randomizer] You have been given an inventory randomizer");
-                } else {
-                    Location loc = p.getLocation();
-                    World world = loc.getWorld();
-                    p.sendMessage(ChatColor.GOLD + "[Inventory Randomizer] An inventory randomizer has been left on the ground nearby");
+                //   Checks for permission
+                if (!util.permCheck(p, "get")) return true;
+                //   Checks for an open slot in the player's inventory
+                Inventory pInv = p.getInventory();
+                for (ItemStack item: pInv.getContents()) {
+                    if (item == null || item.getType() == Material.AIR) {
+                        //   If found, give the player the item and inform them
+                        p.getInventory().addItem(getItem());
+                        p.sendMessage(ChatColor.GOLD + "[Inventory Randomizer] You have been given an inventory randomizer");
+                        return true;
+                    } else {
+                        //   If not found, get the player's location and drop the item there and inform them
+                        Location loc = p.getLocation();
+                        World world = loc.getWorld();
+                        world.dropItemNaturally(loc, getItem());
+                        p.sendMessage(ChatColor.GOLD + "[Inventory Randomizer] An inventory randomizer has been left on the ground nearby");
+                    }
                 }
                 return true;
             }
+            //   If the args don't match get or reload, inform the player the specified parameters are invalid
             p.sendMessage(ChatColor.RED + "[Inventory Randomizer] That command does not exist!");
         }
-        return false;
+        return true;
     }
 
-    //   Adds a player to the GUI onJoin
-    @EventHandler
-    public void onJoin(PlayerJoinEvent e) {
-        Thing(e.getPlayer());
-    }
-
-    //   Checks if a player has an open slot in their inventory
-    public boolean hasAvaliableSlot(Player p){
-        Inventory inv = p.getInventory();
-        for (ItemStack item: inv.getContents()) {
-            if(item == null || item.getType() == Material.AIR) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    public boolean permCheck(Player p, String perm) {
-        perm = "inventoryrandomizer." + perm;
-        //   Checks if a player has permission to use a specific command
-        if (p.hasPermission(perm) || p.hasPermission("inventoryrandomizer.*") || p.hasPermission("*")) return true;
-        //   If not, it informs the player who tried running sed command
-        p.sendMessage(ChatColor.RED + "[Inventory Randomizer] You do not have permission to use that command!");
-        return false;
-    }
-
-    @EventHandler
-    public void onClick(PlayerInteractEvent e) {
-        //   Defines item
-        ItemStack item = e.getItem();
-        //   Checks if the item is the plugin's
-        if (item.getType() != Material.CLOCK || !(item.getItemMeta().getDisplayName().equalsIgnoreCase("Inventory Randomizer"))
-                || !(item.getItemMeta().hasLore())) return;
-        //   Opens randomizer GUI
-        e.getPlayer().openInventory(inv);
-    }
-
-    //   Adds all players (in the list given) to the gui
-    @Deprecated
-    public void addPlayers() {
-        if (OnlinePlayers.size() >= 18) {
-            Bukkit.getLogger().info("[Inventory Randomizer] There are too many players online!");
-            return;
-        }
-        //   Get the current state of the gui
-        Inventory inventory = inv;
-        //   Clear the copy made just above
-        inventory.clear();
-        //   Add all players currently online to the gui
-        for (int i = 0; i <= OnlinePlayers.size(); i++) {
-            Player p = (Player) OnlinePlayers.get(i);
-            ItemStack item = new ItemStack(Material.PLAYER_HEAD, 1, (short) SkullType.PLAYER.ordinal());
-            SkullMeta meta = (SkullMeta) item.getItemMeta();
-            List<String> lore = new ArrayList<>();
-            meta.setOwningPlayer(p);
-            lore.add(ChatColor.DARK_PURPLE + "Click to randomize this player's inventory!");
-            meta.setLore(lore);
-            item.setItemMeta(meta);
-            inventory.setItem(i,item);
-        }
-        //   Re-add close button
-        ItemStack item = new ItemStack(Material.BARRIER);
-        ItemMeta meta = item.getItemMeta();
-        List<String> lore = new ArrayList<>();
-        meta.setDisplayName(ChatColor.RED + "Close Menu");
-        lore.add(ChatColor.LIGHT_PURPLE + "Click to close the menu");
-        meta.setLore(lore);
-        item.setItemMeta(meta);
-        inventory.setItem(19,item);
-        inv = inventory;
-    }
-
-    public void createGui() {
-        //   Create inventory
-        Inventory inv = Bukkit.createInventory(null,18, "Select A Player!");
-        //   Create close button
-        ItemStack item = new ItemStack(Material.BARRIER);
-        ItemMeta meta = item.getItemMeta();
-        List<String> lore = new ArrayList<>();
-        meta.setDisplayName(ChatColor.RED + "Close Menu");
-        lore.add(ChatColor.LIGHT_PURPLE + "Click here to close this menu");
-        meta.setLore(lore);
-        item.setItemMeta(meta);
-        inv.setItem(19,item);
-        //   Add current online players
-        addPlayers();
-    }
-
-    /*
-    so this one is hard to explain, it will only be used when the command is sent in-game
-    but not when the plugin is initially being started up, that way the plugin can run
-    ven if no players are on the server.
-    */
-    public void Thing(Player p) {
-        List<Collection> OnlinePlayers = new ArrayList<>();
-        OnlinePlayers.add(Bukkit.getOnlinePlayers());
-        if (OnlinePlayers.contains(Bukkit.getPlayer(p.getName()))) {
-            OnlinePlayers.remove(Bukkit.getPlayer(p.getName()));
-        }
-        addPlayers(OnlinePlayers);
-    }
-
-    public ItemStack getItem(Player p) {
-        String name = p.getDisplayName().toString();
+    public ItemStack getItem() {
         ItemStack item = new ItemStack(Material.CLOCK);
         ItemMeta meta = item.getItemMeta();
         List<String> lore = new ArrayList<>();
@@ -182,6 +96,7 @@ public final class InventoryRandomizer extends JavaPlugin implements Listener {
         return item;
     }
 
+    //   Randomizes the order of a player's inventory
     public void Randomize(Player p) {
         //   Create new list to hold items
         List<ItemStack> list = new ArrayList<ItemStack>();
@@ -203,4 +118,5 @@ public final class InventoryRandomizer extends JavaPlugin implements Listener {
                 list.remove(p.getInventory().getItem(r));
         }
     }
+
 }
