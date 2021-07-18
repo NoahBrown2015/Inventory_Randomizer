@@ -7,6 +7,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -18,10 +19,12 @@ import java.util.*;
 public final class InventoryRandomizer extends JavaPlugin implements Listener {
 
     Inventory inv = Bukkit.createInventory(null, 18, "Inventory Randomizer");
+    List<Collection> OnlinePlayers = new ArrayList<>();
 
     @Override
     public void onEnable() {
-        setupGUI();
+        OnlinePlayers.add(Bukkit.getOnlinePlayers());
+        createGui();
         this.getServer().getPluginManager().registerEvents(this,this);
     }
 
@@ -42,7 +45,7 @@ public final class InventoryRandomizer extends JavaPlugin implements Listener {
             //   Handles the reloading of the randomizer gui
             if (args[0].equalsIgnoreCase("reload")) {
                 if (!permCheck(p,"reload")) return true;
-                setupGUI();
+                addPlayers(OnlinePlayers);
                 p.sendMessage(ChatColor.GOLD + "[Inventory Randomizer] Plugin successfully reloaded!");
                 this.getLogger().info("Inventory Randomizer has been");
                 return true;
@@ -59,11 +62,18 @@ public final class InventoryRandomizer extends JavaPlugin implements Listener {
                 }
                 return true;
             }
-            p.sendMessage(ChatColor.RED + "That command does not exist!");
+            p.sendMessage(ChatColor.RED + "[Inventory Randomizer] That command does not exist!");
         }
         return false;
     }
 
+    //   Adds a player to the GUI onJoin
+    @EventHandler
+    public void onJoin(PlayerJoinEvent e) {
+        Thing(e.getPlayer());
+    }
+
+    //   Checks if a player has an open slot in their inventory
     public boolean hasAvaliableSlot(Player p){
         Inventory inv = p.getInventory();
         for (ItemStack item: inv.getContents()) {
@@ -76,7 +86,9 @@ public final class InventoryRandomizer extends JavaPlugin implements Listener {
 
     public boolean permCheck(Player p, String perm) {
         perm = "inventoryrandomizer." + perm;
+        //   Checks if a player has permission to use a specific command
         if (p.hasPermission(perm) || p.hasPermission("inventoryrandomizer.*") || p.hasPermission("*")) return true;
+        //   If not, it informs the player who tried running sed command
         p.sendMessage(ChatColor.RED + "[Inventory Randomizer] You do not have permission to use that command!");
         return false;
     }
@@ -92,12 +104,18 @@ public final class InventoryRandomizer extends JavaPlugin implements Listener {
         e.getPlayer().openInventory(inv);
     }
 
+    //   Adds all players (in the list given) to the gui
     @Deprecated
-    public void setupGUI() {
+    public void addPlayers() {
+        if (OnlinePlayers.size() >= 18) {
+            Bukkit.getLogger().info("[Inventory Randomizer] There are too many players online!");
+            return;
+        }
+        //   Get the current state of the gui
         Inventory inventory = inv;
+        //   Clear the copy made just above
         inventory.clear();
-        List<Collection> OnlinePlayers = new ArrayList<>();
-        OnlinePlayers.add(Bukkit.getOnlinePlayers());
+        //   Add all players currently online to the gui
         for (int i = 0; i <= OnlinePlayers.size(); i++) {
             Player p = (Player) OnlinePlayers.get(i);
             ItemStack item = new ItemStack(Material.PLAYER_HEAD, 1, (short) SkullType.PLAYER.ordinal());
@@ -109,6 +127,7 @@ public final class InventoryRandomizer extends JavaPlugin implements Listener {
             item.setItemMeta(meta);
             inventory.setItem(i,item);
         }
+        //   Re-add close button
         ItemStack item = new ItemStack(Material.BARRIER);
         ItemMeta meta = item.getItemMeta();
         List<String> lore = new ArrayList<>();
@@ -118,6 +137,36 @@ public final class InventoryRandomizer extends JavaPlugin implements Listener {
         item.setItemMeta(meta);
         inventory.setItem(19,item);
         inv = inventory;
+    }
+
+    public void createGui() {
+        //   Create inventory
+        Inventory inv = Bukkit.createInventory(null,18, "Select A Player!");
+        //   Create close button
+        ItemStack item = new ItemStack(Material.BARRIER);
+        ItemMeta meta = item.getItemMeta();
+        List<String> lore = new ArrayList<>();
+        meta.setDisplayName(ChatColor.RED + "Close Menu");
+        lore.add(ChatColor.LIGHT_PURPLE + "Click here to close this menu");
+        meta.setLore(lore);
+        item.setItemMeta(meta);
+        inv.setItem(19,item);
+        //   Add current online players
+        addPlayers();
+    }
+
+    /*
+    so this one is hard to explain, it will only be used when the command is sent in-game
+    but not when the plugin is initially being started up, that way the plugin can run
+    ven if no players are on the server.
+    */
+    public void Thing(Player p) {
+        List<Collection> OnlinePlayers = new ArrayList<>();
+        OnlinePlayers.add(Bukkit.getOnlinePlayers());
+        if (OnlinePlayers.contains(Bukkit.getPlayer(p.getName()))) {
+            OnlinePlayers.remove(Bukkit.getPlayer(p.getName()));
+        }
+        addPlayers(OnlinePlayers);
     }
 
     public ItemStack getItem(Player p) {
