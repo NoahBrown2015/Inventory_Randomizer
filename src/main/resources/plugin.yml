@@ -5,4 +5,7 @@ version: 1.3
 api-version: 1.17
 
 commands:
-  InventoryRandomizer:
+  get:
+    usage: /inventoryrandomizer get
+  reload:
+    usage: /inventoryrandomizer reload

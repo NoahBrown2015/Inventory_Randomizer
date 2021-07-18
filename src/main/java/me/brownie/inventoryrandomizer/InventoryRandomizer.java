@@ -14,9 +14,9 @@ import java.util.*;
 
 public final class InventoryRandomizer extends JavaPlugin implements Listener {
 
-    public Events events;
-    public Utils util;
-    public Menu menu;
+    public Events events = new Events();
+    public Utils util = new Utils();
+    public Menu menu = new Menu();
 
     Inventory inv = Bukkit.createInventory(null, 18, "Inventory Randomizer");
     List<Collection> OnlinePlayers = new ArrayList<>();
@@ -26,7 +26,7 @@ public final class InventoryRandomizer extends JavaPlugin implements Listener {
     public void onEnable() {
         OnlinePlayers.add(Bukkit.getOnlinePlayers());
         menu.createGui();
-        this.getServer().getPluginManager().registerEvents(this,this);
+        this.getServer().getPluginManager().registerEvents(events,this);
     }
 
     @Override
@@ -35,7 +35,7 @@ public final class InventoryRandomizer extends JavaPlugin implements Listener {
 
     public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
         //   Checks if the command sent is this plugin's
-        if (label.equalsIgnoreCase("InventoryRandomizer")) {
+        if (label.equalsIgnoreCase("inventoryrandomizer")) {
             //   Handles the console asking for the compass
             if (!(sender instanceof Player)) {
                 sender.sendMessage("[Inventory Randomizer] This command is only available in-game!");
