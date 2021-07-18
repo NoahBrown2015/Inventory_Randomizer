@@ -8,7 +8,6 @@ import org.bukkit.event.Listener;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.*;
@@ -84,6 +83,7 @@ public final class InventoryRandomizer extends JavaPlugin implements Listener {
         return true;
     }
 
+    //   Returns the randomizer clock
     public ItemStack getItem() {
         ItemStack item = new ItemStack(Material.CLOCK);
         ItemMeta meta = item.getItemMeta();

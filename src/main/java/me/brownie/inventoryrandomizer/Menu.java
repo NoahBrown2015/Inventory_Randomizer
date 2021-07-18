@@ -58,6 +58,7 @@ public class Menu {
             SkullMeta meta = (SkullMeta) item.getItemMeta();
             List<String> lore = new ArrayList<>();
             meta.setOwningPlayer(tempP);
+            meta.setDisplayName(tempP.getDisplayName());
             lore.add(ChatColor.DARK_PURPLE + "Click to randomize this player's inventory!");
             meta.setLore(lore);
             item.setItemMeta(meta);
