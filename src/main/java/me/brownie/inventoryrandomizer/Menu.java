@@ -72,7 +72,7 @@ public class Menu {
         lore.add(ChatColor.LIGHT_PURPLE + "Click to close the menu");
         meta.setLore(lore);
         item.setItemMeta(meta);
-        inventory.setItem(19,item);
+        inventory.setItem(18,item);
         main.inv = inventory;
         //   Re-add the removed player to the OnlinePlayers list for the future
         Collection pReTyped = (Collection) p;
